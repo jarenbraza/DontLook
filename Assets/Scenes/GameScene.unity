@@ -132,6 +132,7 @@ GameObject:
   m_Component:
   - component: {fileID: 359458664}
   - component: {fileID: 359458665}
+  - component: {fileID: 359458666}
   m_Layer: 0
   m_Name: GameMap
   m_TagString: Untagged
@@ -166,11 +167,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 909c00afea06dc042927c5cbe5650cf8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileVisualPrefab: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
-  unitVisualPrefab: {fileID: 8747187022713724388, guid: 29aed33407faf654b9520c9e99ce394d, type: 3}
-  doorVisualPrefab: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
-  wallVisualPrefab: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
-  selectableTileVisualPrefab: {fileID: 0}
+--- !u!114 &359458666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 359458663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d25100f42c257b498f92f412a344ec2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileGameObject: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
+  unitGameObject: {fileID: 8747187022713724388, guid: 29aed33407faf654b9520c9e99ce394d, type: 3}
+  doorGameObject: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
+  wallGameObject: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
+  reachableTileGameObject: {fileID: 919132149155446097, guid: dcbd15f38b8390b42bd3a2fa369e3042, type: 3}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0

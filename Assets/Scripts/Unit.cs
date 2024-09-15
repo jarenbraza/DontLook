@@ -1,60 +1,90 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Unit : MonoBehaviour {
+    public static Unit SelectedUnit { get; private set; }
+
     private Outline outline;
-
-    public GameObject unitGameObject;
-    public GameMap tileMap;
-
-    private readonly float UnitSelectedWidth = 5f;
-    private readonly Color UnitSelectedColor = Color.red;
-    private readonly float UnitHoverWidth = 1f;
-    private readonly Color UnitHoverColor = Color.yellow;
+    private Render render;
 
     public int Id { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
     public int Movement { get; set; }
+    public Tile[,] Tiles { get; set; }
+    public HashSet<Tile> ReachableTiles { get; private set; } = new();
 
     void Start() {
-        outline = unitGameObject.AddComponent<Outline>();
+        outline = gameObject.AddComponent<Outline>();
+        render = gameObject.GetComponent<Render>();
         outline.OutlineColor = Color.red;
         outline.OutlineMode = Outline.Mode.OutlineAll;
         outline.OutlineWidth = 0f;
     }
 
     void OnMouseUp() {
-        
-        Debug.Log("Clicked");
-        if (this == tileMap.SelectedUnit) {
-            tileMap.UnselectUnit();
+        if (SelectedUnit == this) {
+            UnselectUnit();
         } else {
-            tileMap.UnselectUnit();
-            tileMap.SelectedUnit = this;
+            UnselectUnit();
+            SelectedUnit = this;
             Highlight();
+            SetReachableTiles();
+            render.RenderReachableTiles(ReachableTiles);
         }
     }
 
     void OnMouseEnter() {
-        Debug.Log("Entered");
-        if (this != tileMap.SelectedUnit) {
-            outline.OutlineWidth = UnitHoverWidth;
-            outline.OutlineColor = UnitHoverColor;
+        if (this != SelectedUnit) {
+            outline.OutlineWidth = GameConstants.UnitHoverWidth;
+            outline.OutlineColor = GameConstants.UnitHoverColor;
         }
     }
 
     void OnMouseExit() {
-        Debug.Log("Exited");
-        if (this != tileMap.SelectedUnit)
+        if (this != SelectedUnit)
             Unhighlight();
     }
 
-    public void Highlight() {
-        outline.OutlineWidth = UnitSelectedWidth;
-        outline.OutlineColor = UnitSelectedColor;
+    public void Move(int destinationX, int destinationY) {
+        gameObject.transform.position = render.ComputeUnitPosition(destinationX, destinationY, Id);
+        (X, Y) = (destinationX, destinationY);
+        UnselectUnit();
     }
 
-    public void Unhighlight() {
+    void Highlight() {
+        outline.OutlineWidth = GameConstants.UnitSelectedWidth;
+        outline.OutlineColor = GameConstants.UnitSelectedColor;
+    }
+
+    void Unhighlight() {
         outline.OutlineWidth = 0f;
+    }
+
+    void UnselectUnit() {
+        if (SelectedUnit != null) {
+            SelectedUnit.Unhighlight();
+            SelectedUnit = null;
+            ReachableTiles.Clear();
+            render.DestroyReachableTiles();
+        }
+    }
+
+    void SetReachableTiles() {
+        var q = new Queue<(Tile, int)>(new[] { (Tiles[X, Y], 0) });
+        ReachableTiles = new HashSet<Tile>() { Tiles[X, Y] };
+
+        while (q.Count > 0) {
+            var (currentTile, distanceTraveled) = q.Dequeue();
+
+            if (distanceTraveled == Movement)
+                continue;
+
+            foreach (var tileToVisit in currentTile.GetConnectedTiles(Tiles).Except(ReachableTiles)) {
+                q.Enqueue((tileToVisit, distanceTraveled + 1));
+                ReachableTiles.Add(tileToVisit);
+            }
+        }
     }
 }

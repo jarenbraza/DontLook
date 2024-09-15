@@ -3,18 +3,16 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour {
     public HashSet<Direction> hasDoor = new();
-    public List<Unit> units = new();
-    public GameMap tileMap;
-
     public int X { get; set; }
     public int Y { get; set; }
     public int RoomId { get; set; }
 
     void OnMouseUp() {
-        if (tileMap.IsVisitableForSelectedUnit(X, Y))
-            tileMap.MoveSelectedUnit(X, Y);
+        if (Unit.SelectedUnit == null)
+            return;
 
-        tileMap.UnselectUnit();
+        if (Unit.SelectedUnit.ReachableTiles.Contains(this))
+            Unit.SelectedUnit.Move(X, Y);
     }
 
     public List<Tile> GetConnectedTiles(Tile[,] tiles) {
