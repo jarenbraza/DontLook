@@ -1,0 +1,38 @@
+{
+  "name": "com.unity.services.wire",
+  "displayName": "Wire",
+  "version": "1.2.6",
+  "unity": "2020.3",
+  "description": "Wire provides notifications in real-time for Unity Gaming Services subscribing to a particular service and listening for messages from that subscription through a websocket connection.",
+  "dependencies": {
+    "com.unity.services.core": "1.12.5",
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.services.authentication": "2.7.4"
+  },
+  "type": "library",
+  "_upm": {
+    "supportedPlatforms": [
+      "Android",
+      "iOS",
+      "Linux",
+      "Mac",
+      "PC",
+      "PS4",
+      "PS5",
+      "Switch",
+      "WebGL"
+    ],
+    "changelog": "### Fixed\n\n- Websocket will no longer stop attempting to reconnect after a certain amount of tries."
+  },
+  "relatedPackages": {
+    "com.unity.services.wire.tests": "1.2.6"
+  },
+  "upmCi": {
+    "footprint": "17270aebe0d9b9671707d61a4a7b773e95c3e692"
+  },
+  "repository": {
+    "url": "https://github.cds.internal.unity3d.com/unity/operate-services-sdk.git",
+    "type": "git",
+    "revision": "410efa39862f81c89031c581d4f357ef4052494c"
+  }
+}

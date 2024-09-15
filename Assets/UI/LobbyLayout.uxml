@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="LobbyListPanel" style="flex-grow: 1; display: flex;">
+        <ui:VisualElement name="TopContainer" style="flex-grow: 0; align-items: center; justify-content: space-between; align-self: auto; flex-direction: row;">
+            <ui:Label tabindex="-1" text="Lobbies" parse-escape-sequences="true" display-tooltip-when-elided="true" style="align-items: auto; flex-direction: column; -unity-text-align: middle-left;" />
+            <ui:Button text="Create" parse-escape-sequences="true" display-tooltip-when-elided="true" name="CreateLobbyButton" />
+            <ui:Button text="Refresh" parse-escape-sequences="true" display-tooltip-when-elided="true" name="RefreshLobbiesButton" />
+        </ui:VisualElement>
+        <ui:ScrollView name="LobbyList" />
+    </ui:VisualElement>
+</ui:UXML>
