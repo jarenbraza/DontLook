@@ -183,7 +183,7 @@ MonoBehaviour:
   unitGameObject: {fileID: 8747187022713724388, guid: 29aed33407faf654b9520c9e99ce394d, type: 3}
   doorGameObject: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
   wallGameObject: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
-  reachableTileGameObject: {fileID: 919132149155446097, guid: dcbd15f38b8390b42bd3a2fa369e3042, type: 3}
+  reachableTileGameObject: {fileID: 919132149155446097, guid: b0fff20681cc73f48b260ee3b06d0024, type: 3}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0

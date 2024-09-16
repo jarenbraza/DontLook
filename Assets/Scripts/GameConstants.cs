@@ -7,6 +7,12 @@ public enum Direction {
     Right = 3
 }
 
+public enum Affiliation {
+    Good = 0,
+    MainBad = 1,
+    AssistantBad = 2
+}
+
 class GameConstants {
     public static float UnitSelectedWidth { get; private set; } = 3f;
     public static float UnitHoverWidth { get; private set; } = 1f;

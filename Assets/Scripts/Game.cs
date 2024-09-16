@@ -7,6 +7,9 @@ public class Game : MonoBehaviour {
     private Tile[,] tiles;
     private Unit[] units;
 
+    public Affiliation Affiliation { get; set; }
+    public UnitAction[] UnitActions { get; private set; }
+
     // Render the game. Update all GameObject components with data to be used later.
     void Start() {
         var objectRenderer = gameObject.GetComponent<Render>();
@@ -16,6 +19,13 @@ public class Game : MonoBehaviour {
         UpdateDoors();
         objectRenderer.RenderDoors();
         objectRenderer.RenderWalls(tiles);
+
+        // TODO: For now, assume all players are good :) Eventually, we want to be able to choose teams or randomize across everyone.
+        Affiliation = Affiliation.Good;
+        UnitActions = Affiliation == Affiliation.Good ? new UnitAction[1] : new UnitAction[2];
+
+        // Must be at the end. All components should be in the scene now, so it is safe to add event listeners.
+        AddListeners();
     }
 
     void UpdateTiles(GameObject[,] tileGameObjects) {
@@ -47,5 +57,20 @@ public class Game : MonoBehaviour {
             tiles[x1, y1].hasDoor.Add(y1 < y2 ? Direction.Up : Direction.Down);
             tiles[x2, y2].hasDoor.Add(y1 < y2 ? Direction.Down : Direction.Up);
         }
+    }
+
+    public void CommitActions() {
+        // TODO: Basically, for each action made by the player, perform game (logic) updates and rendering (visual) updates
+        // TODO: Rendered visual updates should be a prefab.
+        // TODO: For now, we're doing action right away (since moves are rendered instantly).
+    }
+
+    void AddListeners() {
+        Unit.UnitActionEvent.AddListener(HandleUnitActionEvent);
+    }
+
+    void HandleUnitActionEvent(UnitAction unitAction) {
+        UnitActions[0] = unitAction;
+        Debug.Log($"Stored unit action for unit {unitAction.Unit.Id} to move to {unitAction.Position.Item1},{unitAction.Position.Item2}");
     }
 }

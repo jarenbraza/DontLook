@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Unit : MonoBehaviour {
     public static Unit SelectedUnit { get; private set; }
+    public static UnitActionEvent UnitActionEvent { get; set; }
 
     private Outline outline;
     private Render render;
@@ -15,7 +16,9 @@ public class Unit : MonoBehaviour {
     public Tile[,] Tiles { get; set; }
     public HashSet<Tile> ReachableTiles { get; private set; } = new();
 
-    void Start() {
+    void Awake() {
+        UnitActionEvent ??= new();
+
         outline = gameObject.AddComponent<Outline>();
         render = gameObject.GetComponent<Render>();
         outline.OutlineColor = Color.red;
@@ -48,7 +51,7 @@ public class Unit : MonoBehaviour {
     }
 
     public void Move(int destinationX, int destinationY) {
-        gameObject.transform.position = render.ComputeUnitPosition(destinationX, destinationY, Id);
+        UnitActionEvent.Invoke(new UnitAction(this, (destinationX, destinationY)));
         (X, Y) = (destinationX, destinationY);
         UnselectUnit();
     }

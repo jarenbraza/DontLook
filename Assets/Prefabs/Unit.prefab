@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 162307224954314841}
   - component: {fileID: 2605841788107021687}
   - component: {fileID: -5244072287296175534}
-  - component: {fileID: 4159895986706226503}
   - component: {fileID: 8598968075972984126}
+  - component: {fileID: 1474504251865820674}
   m_Layer: 0
   m_Name: Unit
   m_TagString: Untagged
@@ -101,23 +101,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f19de348fce24724182fabeb3dd2795b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &4159895986706226503
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8747187022713724388}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d25100f42c257b498f92f412a344ec2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tileGameObject: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
-  unitGameObject: {fileID: 8747187022713724388}
-  doorGameObject: {fileID: 0}
-  wallGameObject: {fileID: 0}
-  reachableTileGameObject: {fileID: 919132149155446097, guid: dcbd15f38b8390b42bd3a2fa369e3042, type: 3}
 --- !u!64 &8598968075972984126
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -140,3 +123,20 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4594759720096475116, guid: 8caec2ec0fa772449ba2f5687b883ae9, type: 3}
+--- !u!114 &1474504251865820674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8747187022713724388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d25100f42c257b498f92f412a344ec2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileGameObject: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
+  unitGameObject: {fileID: 8747187022713724388}
+  doorGameObject: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
+  wallGameObject: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
+  reachableTileGameObject: {fileID: 919132149155446097, guid: 627fdb263047c1f4687a7e315e48a29b, type: 3}

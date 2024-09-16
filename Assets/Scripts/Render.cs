@@ -15,6 +15,11 @@ public class Render : MonoBehaviour {
 
     private List<GameObject> renderedReachableTiles = new();
 
+    void Start() {
+        // Must be at the end. All components should be in the scene now, so it is safe to add event listeners.
+        AddListeners();
+    }
+
     public GameObject[,] RenderTiles() {
         var renderedObjects = new GameObject[MapConstants.MapSizeX, MapConstants.MapSizeY];
 
@@ -30,7 +35,7 @@ public class Render : MonoBehaviour {
 
         for (var id = 0; id < GameConstants.UnitCount; id++)
             renderedObjects[id] = Instantiate(unitGameObject, ComputeUnitPosition(0, 0, id), Quaternion.Euler(90, 0, -180));
-        
+
         return renderedObjects;
     }
 
@@ -39,9 +44,7 @@ public class Render : MonoBehaviour {
             RenderDoor(x1, y1, x2, y2);
     }
 
-    private void RenderDoor(int x1, int y1, int x2, int y2) {
-
-        Debug.Log($"Rendering door between ({x1},{y1}) ({x2},{y2})");
+    void RenderDoor(int x1, int y1, int x2, int y2) {
         if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1) {
             throw new Exception("Expected door coordinates to be adjacent");
         }
@@ -86,7 +89,7 @@ public class Render : MonoBehaviour {
             RenderWall(x1, y1, x2, y2);
     }
 
-    private void RenderWall(int x1, int y1, int x2, int y2) {
+    void RenderWall(int x1, int y1, int x2, int y2) {
         if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1) {
             throw new Exception("Expected wall coordinates to be adjacent");
         }
@@ -119,7 +122,7 @@ public class Render : MonoBehaviour {
             var reachableTilePosition = ComputeTilePosition(tile.X, tile.Y);
             reachableTilePosition.z = -1.7f; // Place reachable tile highlight just above the floor
             var gameObject = Instantiate(reachableTileGameObject, reachableTilePosition, Quaternion.Euler(0, 90, -90));
-            gameObject.transform.localScale = tileGameObject.transform.localScale;
+            gameObject.transform.localScale = Vector3.Scale(tileGameObject.transform.localScale, new Vector3(0.9f, 1, 0.9f));
             renderedReachableTiles.Add(gameObject);
         }
     }
@@ -148,5 +151,14 @@ public class Render : MonoBehaviour {
             tilePosition.y + unitId / Convert.ToInt32(tileScale.y) - unitScale.y,
             unitScale.z / 2 - tileScale.z
         );
+    }
+
+    public void AddListeners() {
+        Unit.UnitActionEvent.AddListener(HandleUnitActionEvent);
+    }
+
+    void HandleUnitActionEvent(UnitAction unitAction) {
+        var (x, y) = unitAction.Position;
+        unitAction.Unit.gameObject.transform.position = ComputeUnitPosition(x, y, unitAction.Unit.Id);
     }
 }
