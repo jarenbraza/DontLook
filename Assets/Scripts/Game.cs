@@ -1,43 +1,67 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Contains core logic for running the game.
 /// </summary>
 public class Game : MonoBehaviour {
-    private Tile[,] tiles;
-    private Unit[] units;
+    [SerializeField] private Button commitCommandButton;
 
-    public Affiliation Affiliation { get; set; }
-    public UnitAction[] UnitActions { get; private set; }
+    private Unit[] units;
+    private Affiliation affiliation;
+    private List<UnitAction> unitActions;
+
+    public static bool CanSelectUnits { get; private set; }
+    public static Unit SelectedUnit { get; private set; }
+    public static Tile[,] Tiles { get; private set; }
+
+    public CommitMoveActionEvent CommitMoveActionEvent { get; private set; }
+
+    void Awake() {
+        CommitMoveActionEvent ??= new();
+    }
 
     // Render the game. Update all GameObject components with data to be used later.
     void Start() {
+        commitCommandButton.onClick.AddListener(CommitCommandHandler);
+
         var objectRenderer = gameObject.GetComponent<Render>();
+        objectRenderer.CancelCommandEvent.AddListener(CancelCommandEventHandler);
 
         UpdateTiles(objectRenderer.RenderTiles());
         UpdateUnits(objectRenderer.RenderUnits());
-        UpdateDoors();
         objectRenderer.RenderDoors();
-        objectRenderer.RenderWalls(tiles);
+        objectRenderer.RenderWalls(Tiles);
 
         // TODO: For now, assume all players are good :) Eventually, we want to be able to choose teams or randomize across everyone.
-        Affiliation = Affiliation.Good;
-        UnitActions = Affiliation == Affiliation.Good ? new UnitAction[1] : new UnitAction[2];
-
-        // Must be at the end. All components should be in the scene now, so it is safe to add event listeners.
-        AddListeners();
+        affiliation = Affiliation.Good;
+        unitActions = new();
+        SelectedUnit = null;
+        CanSelectUnits = true;
     }
 
     void UpdateTiles(GameObject[,] tileGameObjects) {
-        tiles = new Tile[MapConstants.MapSizeX, MapConstants.MapSizeY];
+        Tiles = new Tile[MapConstants.MapSizeX, MapConstants.MapSizeY];
 
         for (var x = 0; x < MapConstants.MapSizeX; x++) {
             for (var y = 0; y < MapConstants.MapSizeY; y++) {
                 var tile = tileGameObjects[x, y].GetComponent<Tile>();
                 (tile.X, tile.Y, tile.RoomId) = (x, y, MapConstants.TileRoomIds[x, y]);
-                tiles[x, y] = tile;
+                Tiles[x, y] = tile;
             }
         }
+
+        foreach (var (x1, y1, x2, y2) in MapConstants.Doors) {
+            Tiles[x1, y1].hasDoor.Add(x1 < x2 ? Direction.Right : Direction.Left);
+            Tiles[x2, y2].hasDoor.Add(x1 < x2 ? Direction.Left : Direction.Right);
+            Tiles[x1, y1].hasDoor.Add(y1 < y2 ? Direction.Up : Direction.Down);
+            Tiles[x2, y2].hasDoor.Add(y1 < y2 ? Direction.Down : Direction.Up);
+        }
+
+        foreach (var tile in Tiles)
+            tile.StageMoveActionEvent.AddListener(StageMoveActionEventHandler);
     }
 
     void UpdateUnits(GameObject[] unitGameObjects) {
@@ -45,32 +69,41 @@ public class Game : MonoBehaviour {
 
         for (var id = 0; id < GameConstants.UnitCount; id++) {
             var unit = unitGameObjects[id].GetComponent<Unit>();
-            (unit.Id, unit.X, unit.Y, unit.Movement, unit.Tiles) = (id, 0, 0, 3, tiles);
+            (unit.Id, unit.X, unit.Y, unit.Movement) = (id, 0, 0, 3);
             units[id] = unit;
         }
+
+        foreach (var unit in units)
+            unit.SelectUnitEvent.AddListener(SelectUnitEventHandler);
     }
 
-    void UpdateDoors() {
-        foreach (var (x1, y1, x2, y2) in MapConstants.Doors) {
-            tiles[x1, y1].hasDoor.Add(x1 < x2 ? Direction.Right : Direction.Left);
-            tiles[x2, y2].hasDoor.Add(x1 < x2 ? Direction.Left : Direction.Right);
-            tiles[x1, y1].hasDoor.Add(y1 < y2 ? Direction.Up : Direction.Down);
-            tiles[x2, y2].hasDoor.Add(y1 < y2 ? Direction.Down : Direction.Up);
+    void CancelCommandEventHandler(Unit unit, Tile tile) {
+        unitActions = unitActions.Where((unitAction) => unitAction.Unit != unit && unitAction.Tile != tile).ToList();
+        CanSelectUnits = true;
+    }
+
+    void CommitCommandHandler() {
+        foreach (var unitAction in unitActions) {
+            unitAction.Unit.Move(unitAction.Tile);
+            CommitMoveActionEvent.Invoke(unitAction.Unit, unitAction.Tile);
+        }
+
+        unitActions.Clear();
+        CanSelectUnits = true;
+    }
+
+    void StageMoveActionEventHandler(Unit unit, Tile tile) {
+        if (SelectedUnit.ReachableTiles.Contains(tile)) {
+            SelectedUnit.Move(tile);
+            unitActions.Add(new UnitAction(unit, tile));
+            CanSelectUnits = affiliation == Affiliation.Good ? unitActions.Count < 1 : unitActions.Count < 2;
         }
     }
 
-    public void CommitActions() {
-        // TODO: Basically, for each action made by the player, perform game (logic) updates and rendering (visual) updates
-        // TODO: Rendered visual updates should be a prefab.
-        // TODO: For now, we're doing action right away (since moves are rendered instantly).
-    }
+    void SelectUnitEventHandler(Unit unit) {
+        if (SelectedUnit != null)
+            SelectedUnit.Unhighlight();
 
-    void AddListeners() {
-        Unit.UnitActionEvent.AddListener(HandleUnitActionEvent);
-    }
-
-    void HandleUnitActionEvent(UnitAction unitAction) {
-        UnitActions[0] = unitAction;
-        Debug.Log($"Stored unit action for unit {unitAction.Unit.Id} to move to {unitAction.Position.Item1},{unitAction.Position.Item2}");
+        SelectedUnit = unit;
     }
 }

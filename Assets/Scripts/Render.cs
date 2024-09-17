@@ -7,36 +7,61 @@ using UnityEngine;
 /// Contains logic for instantiating and positioning GameObjects into the world.
 /// </summary>
 public class Render : MonoBehaviour {
-    [SerializeField] private GameObject tileGameObject;
-    [SerializeField] private GameObject unitGameObject;
-    [SerializeField] private GameObject doorGameObject;
-    [SerializeField] private GameObject wallGameObject;
-    [SerializeField] private GameObject reachableTileGameObject;
+    public CancelActionEvent CancelCommandEvent { get; private set; }
 
-    private List<GameObject> renderedReachableTiles = new();
+    [SerializeField] private GameObject tile;
+    [SerializeField] private GameObject unit;
+    [SerializeField] private GameObject door;
+    [SerializeField] private GameObject wall;
+    [SerializeField] private GameObject reachableTileHighlight;
+    [SerializeField] private GameObject actionPreview;
+
+    [SerializeField] [Tooltip("Container to hold non-essential environment details, like walls and doors")]
+    private GameObject environmentModels;
+
+    [SerializeField] [Tooltip("Container to hold interactable game-related objects")]
+    private GameObject game;
+
+    // The fields below are generated and deleted during runtime.
+    private IEnumerable<GameObject> renderedReachableTileHighlights = Enumerable.Empty<GameObject>();
+    private GameObject renderedActionPreview;
+
+    void Awake() {
+        CancelCommandEvent ??= new();
+    }
 
     void Start() {
-        // Must be at the end. All components should be in the scene now, so it is safe to add event listeners.
-        AddListeners();
+        game.GetComponent<Game>().CommitMoveActionEvent.AddListener(CommitMoveActionEventHandler);
     }
 
     public GameObject[,] RenderTiles() {
-        var renderedObjects = new GameObject[MapConstants.MapSizeX, MapConstants.MapSizeY];
+        var renderedTiles = new GameObject[MapConstants.MapSizeX, MapConstants.MapSizeY];
 
-        for (var x = 0; x < MapConstants.MapSizeX; x++)
-            for (var y = 0; y < MapConstants.MapSizeY; y++)
-                renderedObjects[x, y] = Instantiate(tileGameObject, ComputeTilePosition(x, y), Quaternion.identity);
+        for (var x = 0; x < MapConstants.MapSizeX; x++) {
+            for (var y = 0; y < MapConstants.MapSizeY; y++) {
+                renderedTiles[x, y] = Instantiate(tile, ComputeTilePosition(x, y), Quaternion.identity, game.transform);
+                renderedTiles[x, y].name = $"{tile.name}_{x}_{y}";
+            }
+        }
 
-        return renderedObjects;
+        foreach (var renderedTile in renderedTiles)
+            renderedTile.GetComponent<Tile>().StageMoveActionEvent.AddListener(StageMoveActionEventHandler);
+
+        return renderedTiles;
     }
 
     public GameObject[] RenderUnits() {
-        var renderedObjects = new GameObject[GameConstants.UnitCount];
+        var renderedUnits = new GameObject[GameConstants.UnitCount];
 
-        for (var id = 0; id < GameConstants.UnitCount; id++)
-            renderedObjects[id] = Instantiate(unitGameObject, ComputeUnitPosition(0, 0, id), Quaternion.Euler(90, 0, -180));
+        for (var id = 0; id < GameConstants.UnitCount; id++) {
+            renderedUnits[id] = Instantiate(unit, ComputeUnitPosition(0, 0, id), Quaternion.Euler(90, 0, -180), gameObject.transform);
+            renderedUnits[id].name = $"{unit.name}_{id}";
+        }
 
-        return renderedObjects;
+        foreach (var renderedUnit in renderedUnits)
+            renderedUnit.GetComponent<Unit>().SelectUnitEvent.AddListener(SelectUnitEventHandler);
+
+        return renderedUnits;
     }
 
     public void RenderDoors() {
@@ -45,30 +70,31 @@ public class Render : MonoBehaviour {
     }
 
     void RenderDoor(int x1, int y1, int x2, int y2) {
-        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1) {
+        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1)
             throw new Exception("Expected door coordinates to be adjacent");
-        }
 
-        var tileScale = tileGameObject.transform.localScale;
+        var tileScale = tile.transform.localScale;
         var x = Math.Min(x1, x2);
         var y = Math.Min(y1, y2);
 
         if (Math.Abs(x1 - x2) == 1) {
-            var door = Instantiate(
-                doorGameObject,
+            var renderedDoor = Instantiate(
+                door,
                 new Vector3(tileScale.x * x + tileScale.x / 2, tileScale.y * y, -1.5f),
-                Quaternion.Euler(90, 90, -90)
+                Quaternion.Euler(90, 90, -90),
+                environmentModels.transform
             );
-            door.transform.localScale = new Vector3(1, tileScale.x, tileScale.y);
+            renderedDoor.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
 
         if (Math.Abs(y1 - y2) == 1) {
-            var door = Instantiate(
-                doorGameObject,
+            var renderedDoor = Instantiate(
+                door,
                 new Vector3(tileScale.x * x, tileScale.y * y + tileScale.y / 2, -1.5f),
-                Quaternion.Euler(0, 90, -90)
+                Quaternion.Euler(0, 90, -90),
+                environmentModels.transform
             );
-            door.transform.localScale = new Vector3(1, tileScale.x, tileScale.y);
+            renderedDoor.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
     }
 
@@ -90,75 +116,104 @@ public class Render : MonoBehaviour {
     }
 
     void RenderWall(int x1, int y1, int x2, int y2) {
-        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1) {
+        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1)
             throw new Exception("Expected wall coordinates to be adjacent");
-        }
 
-        var tileScale = tileGameObject.transform.localScale;
+        var tileScale = tile.transform.localScale;
 
         if (Math.Abs(x1 - x2) == 1) {
-            var wall = Instantiate(
-                wallGameObject,
+            var renderedWall = Instantiate(
+                wall,
                 new Vector3(tileScale.x * Math.Min(x1, x2) + tileScale.x / 2, tileScale.y * Math.Min(y1, y2), -1.5f),
-                Quaternion.Euler(90, 90, -90)
+                Quaternion.Euler(90, 90, -90),
+                environmentModels.transform
             );
-            wall.transform.localScale = new Vector3(1, tileScale.x, tileScale.y);
+            renderedWall.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
 
         if (Math.Abs(y1 - y2) == 1) {
-            var wall = Instantiate(
-                wallGameObject,
+            var renderedWall = Instantiate(
+                wall,
                 new Vector3(tileScale.x * Math.Min(x1, x2), tileScale.y * Math.Min(y1, y2) + tileScale.y / 2, -1.5f),
-                Quaternion.Euler(0, 90, -90)
+                Quaternion.Euler(0, 90, -90),
+                environmentModels.transform
             );
-            wall.transform.localScale = new Vector3(1, tileScale.x, tileScale.y);
+            renderedWall.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
     }
 
-    public void RenderReachableTiles(IEnumerable<Tile> tiles) {
-        renderedReachableTiles = new();
+    public IEnumerable<GameObject> RenderReachableTiles(IEnumerable<Tile> tiles) {
+        List<GameObject> renderedReachableTiles = new();
 
         foreach (var tile in tiles) {
-            var reachableTilePosition = ComputeTilePosition(tile.X, tile.Y);
-            reachableTilePosition.z = -1.7f; // Place reachable tile highlight just above the floor
-            var gameObject = Instantiate(reachableTileGameObject, reachableTilePosition, Quaternion.Euler(0, 90, -90));
-            gameObject.transform.localScale = Vector3.Scale(tileGameObject.transform.localScale, new Vector3(0.9f, 1, 0.9f));
-            renderedReachableTiles.Add(gameObject);
+            var renderedHighlight = Instantiate(
+                reachableTileHighlight,
+                ComputeTilePosition(tile.X, tile.Y) - new Vector3(0, 0, 1.7f), // Place reachable highlight highlight just above the tile
+                Quaternion.Euler(0, 90, -90),
+                tile.transform
+            );
+            renderedHighlight.transform.localScale = new Vector3(0.8f, 1, 0.8f);
+            renderedReachableTiles.Add(renderedHighlight);
         }
+
+        return renderedReachableTiles;
     }
 
     public void DestroyReachableTiles() {
-        foreach (var gameObject in renderedReachableTiles)
+        foreach (var gameObject in renderedReachableTileHighlights)
             Destroy(gameObject);
 
-        renderedReachableTiles.Clear();
+        renderedReachableTileHighlights = Enumerable.Empty<GameObject>();
     }
 
     // Get the absolute position in the world of a tile at (x, y).
     public Vector3 ComputeTilePosition(int x, int y) {
-        return Vector3.Scale(tileGameObject.transform.localScale, new Vector3(x, y, 0));
+        return Vector3.Scale(tile.transform.localScale, new Vector3(x, y, 0));
     }
 
     // Get the absolute position in the world of a unit at (x, y).
     // TODO: Make unit position rely on how many units are in the room
     public Vector3 ComputeUnitPosition(int x, int y, int unitId) {
         var tilePosition = ComputeTilePosition(x, y);
-        var tileScale = tileGameObject.transform.localScale;
-        var unitScale = unitGameObject.transform.localScale;
+        var tileScale = tile.transform.localScale;
+        var unitScale = unit.transform.localScale;
 
         return new Vector3(
             tilePosition.x + unitId % Convert.ToInt32(tileScale.x) - unitScale.x,
             tilePosition.y + unitId / Convert.ToInt32(tileScale.y) - unitScale.y,
-            unitScale.z / 2 - tileScale.z
+            -tileScale.z / 2
         );
     }
 
-    public void AddListeners() {
-        Unit.UnitActionEvent.AddListener(HandleUnitActionEvent);
+    void CommitMoveActionEventHandler(Unit unit, Tile tile) {
+        unit.gameObject.transform.position = ComputeUnitPosition(tile.X, tile.Y, unit.Id);
+        Destroy(renderedActionPreview);
     }
 
-    void HandleUnitActionEvent(UnitAction unitAction) {
-        var (x, y) = unitAction.Position;
-        unitAction.Unit.gameObject.transform.position = ComputeUnitPosition(x, y, unitAction.Unit.Id);
+    void StageMoveActionEventHandler(Unit unit, Tile tile) {
+        renderedActionPreview = Instantiate(actionPreview, unit.transform);
+
+        var actionPreviewComponent = renderedActionPreview.GetComponent<ActionPreview>();
+
+        actionPreviewComponent.actionPosition.transform.SetPositionAndRotation(
+            new Vector3(ComputeTilePosition(tile.X, tile.Y).x, ComputeTilePosition(tile.X, tile.Y).y, -1.5f),
+            Quaternion.Euler(0, 90, -90)
+        );
+
+        actionPreviewComponent.unit = unit;
+        actionPreviewComponent.tile = tile;
+        actionPreviewComponent.cancelCommandButton.onClick.AddListener(() => CancelActionEventHandler(actionPreviewComponent));
+    }
+
+    void CancelActionEventHandler(ActionPreview actionPreview) {
+        CancelCommandEvent.Invoke(actionPreview.unit, actionPreview.tile);
+        Destroy(renderedActionPreview);
+    }
+
+    void SelectUnitEventHandler(Unit unit) {
+        if (unit == null)
+            DestroyReachableTiles();
+        else
+            renderedReachableTileHighlights = RenderReachableTiles(unit.ReachableTiles);
     }
 }

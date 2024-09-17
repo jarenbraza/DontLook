@@ -2,17 +2,24 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Tile : MonoBehaviour {
+    public StageMoveActionEvent StageMoveActionEvent { get; private set; }
+
     public HashSet<Direction> hasDoor = new();
     public int X { get; set; }
     public int Y { get; set; }
     public int RoomId { get; set; }
 
-    void OnMouseUp() {
-        if (Unit.SelectedUnit == null)
-            return;
+    void Awake() {
+        StageMoveActionEvent ??= new();
+    }
 
-        if (Unit.SelectedUnit.ReachableTiles.Contains(this))
-            Unit.SelectedUnit.Move(X, Y);
+    // TODO: Add more actions other than moving.
+    /// <summary>
+    /// When the tile is clicked with a selected unit, present actions the unit can perform.
+    /// </summary>
+    void OnMouseUp() {
+        if (Game.SelectedUnit != null)
+            StageMoveActionEvent.Invoke(Game.SelectedUnit, this);
     }
 
     public List<Tile> GetConnectedTiles(Tile[,] tiles) {
