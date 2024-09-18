@@ -9,6 +9,8 @@ public class Unit : MonoBehaviour {
     public int Col { get; set; }
     public int Row { get; set; }
     public int Movement { get; set; }
+    public bool IsTarget { get; set; }
+    public bool IsKiller { get; set; }
 
     private Outline outline;
     private Game game;

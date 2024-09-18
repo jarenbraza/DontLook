@@ -73,18 +73,18 @@ public class Game : MonoBehaviour {
 
         foreach (var (c1, r1, c2, r2) in RealMapConstants.Doors) {
             if (c1 < c2) {
-                Tiles[r1, c1].hasDoor.Add(Direction.Right);
-                Tiles[r2, c2].hasDoor.Add(Direction.Left);
+                Tiles[r1, c1].Doors.Add(Direction.Right);
+                Tiles[r2, c2].Doors.Add(Direction.Left);
             } else if (c1 > c2) {
-                Tiles[r1, c1].hasDoor.Add(Direction.Left);
-                Tiles[r2, c2].hasDoor.Add(Direction.Right);
+                Tiles[r1, c1].Doors.Add(Direction.Left);
+                Tiles[r2, c2].Doors.Add(Direction.Right);
             }
             if (r1 < r2) {
-                Tiles[r1, c1].hasDoor.Add(Direction.Up);
-                Tiles[r2, c2].hasDoor.Add(Direction.Down);
+                Tiles[r1, c1].Doors.Add(Direction.Up);
+                Tiles[r2, c2].Doors.Add(Direction.Down);
             } else if (r1 > r2) {
-                Tiles[r1, c1].hasDoor.Add(Direction.Down);
-                Tiles[r2, c2].hasDoor.Add(Direction.Up);
+                Tiles[r1, c1].Doors.Add(Direction.Down);
+                Tiles[r2, c2].Doors.Add(Direction.Up);
             }
         }
 
@@ -93,10 +93,10 @@ public class Game : MonoBehaviour {
 
             if (t.Row == 1 && t.Col == 1) {
                 var s = $"({t.Row},{t.Col}):";
-                if (t.hasDoor.Contains(Direction.Right)) s += "R";
-                if (t.hasDoor.Contains(Direction.Left)) s += "L";
-                if (t.hasDoor.Contains(Direction.Up)) s += "U";
-                if (t.hasDoor.Contains(Direction.Down)) s += "D";
+                if (t.Doors.Contains(Direction.Right)) s += "R";
+                if (t.Doors.Contains(Direction.Left)) s += "L";
+                if (t.Doors.Contains(Direction.Up)) s += "U";
+                if (t.Doors.Contains(Direction.Down)) s += "D";
                 Debug.Log(s);
             }
         }
@@ -106,41 +106,47 @@ public class Game : MonoBehaviour {
         var (startingRow, startingCol) = (0, 3);
         Units = new Unit[GameConstants.UnitCount];
 
+        var (targetId, killerId) = Utility.GetTwoUniqueInRange(0, 5);
+
         for (var id = 0; id < GameConstants.UnitCount; id++) {
             var renderedUnit = Instantiate(unitOriginal, ComputeUnitPosition(startingRow, startingCol, id), Quaternion.Euler(90, 0, -180), gameObject.transform);
-            renderedUnit.name = $"{unitOriginal.name}_{id}";
+            renderedUnit.name = $"{unitOriginal.name}_{id}{(id == killerId ? "_killer" : "")}{(id == targetId ? "_target" : "")}";
 
-            Units[id] = renderedUnit.GetComponent<Unit>();
-            (Units[id].Id, Units[id].Row, Units[id].Col, Units[id].Movement) = (id, startingRow, startingCol, 3);
+            var unit = renderedUnit.GetComponent<Unit>();
+            (unit.Id, unit.Row, unit.Col, unit.Movement) = (id, startingRow, startingCol, 3);
+            unit.IsTarget = id == targetId;
+            unit.IsKiller = id == killerId;
+            
+            Units[id] = unit;
         }
     }
 
     void RenderDoors() {
-        foreach (var (x1, y1, x2, y2) in RealMapConstants.Doors)
-            RenderDoor(x1, y1, x2, y2);
+        foreach (var (c1, r1, c2, r2) in RealMapConstants.Doors)
+            RenderDoor(c1, r1, c2, r2);
     }
 
-    void RenderDoor(int x1, int y1, int x2, int y2) {
-        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1)
+    void RenderDoor(int c1, int r1, int c2, int r2) {
+        if (Math.Abs(c1 - c2) + Math.Abs(r1 - r2) != 1)
             throw new Exception("Expected door coordinates to be adjacent");
 
         var tileScale = tileOriginal.transform.localScale;
-        var (x, y) = (Math.Min(x1, x2), Math.Min(y1, y2));
+        var (col, row) = (Math.Min(c1, c2), Math.Min(r1, r2));
 
-        if (Math.Abs(x1 - x2) == 1) {
+        if (Math.Abs(c1 - c2) == 1) {
             var renderedDoor = Instantiate(
                 doorOriginal,
-                new Vector3(tileScale.x * x + tileScale.x / 2, tileScale.y * y, -1.5f),
+                new Vector3(tileScale.x * col + tileScale.x / 2, tileScale.y * row, -1.5f),
                 Quaternion.Euler(90, 90, -90),
                 environmentContainer.transform
             );
             renderedDoor.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
 
-        if (Math.Abs(y1 - y2) == 1) {
+        if (Math.Abs(r1 - r2) == 1) {
             var renderedDoor = Instantiate(
                 doorOriginal,
-                new Vector3(tileScale.x * x, tileScale.y * y + tileScale.y / 2, -1.5f),
+                new Vector3(tileScale.x * col, tileScale.y * row + tileScale.y / 2, -1.5f),
                 Quaternion.Euler(0, 90, -90),
                 environmentContainer.transform
             );
@@ -169,30 +175,30 @@ public class Game : MonoBehaviour {
             }
         }
 
-        foreach (var (x1, y1, x2, y2) in uniqueWallCoordinates)
-            RenderWall(x1, y1, x2, y2);
+        foreach (var (c1, r1, c2, r2) in uniqueWallCoordinates)
+            RenderWall(c1, r1, c2, r2);
     }
 
-    void RenderWall(int x1, int y1, int x2, int y2) {
-        if (Math.Abs(x1 - x2) + Math.Abs(y1 - y2) != 1)
+    void RenderWall(int c1, int r1, int c2, int r2) {
+        if (Math.Abs(c1 - c2) + Math.Abs(r1 - r2) != 1)
             throw new Exception("Expected wall coordinates to be adjacent");
 
         var tileScale = tileOriginal.transform.localScale;
 
-        if (Math.Abs(x1 - x2) == 1) {
+        if (Math.Abs(c1 - c2) == 1) {
             var renderedWall = Instantiate(
                 wallOriginal,
-                new Vector3(tileScale.x * Math.Min(x1, x2) + tileScale.x / 2, tileScale.y * Math.Min(y1, y2), -1.5f),
+                new Vector3(tileScale.x * Math.Min(c1, c2) + tileScale.x / 2, tileScale.y * Math.Min(r1, r2), -1.5f),
                 Quaternion.Euler(90, 90, -90),
                 environmentContainer.transform
             );
             renderedWall.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
         }
 
-        if (Math.Abs(y1 - y2) == 1) {
+        if (Math.Abs(r1 - r2) == 1) {
             var renderedWall = Instantiate(
                 wallOriginal,
-                new Vector3(tileScale.x * Math.Min(x1, x2), tileScale.y * Math.Min(y1, y2) + tileScale.y / 2, -1.5f),
+                new Vector3(tileScale.x * Math.Min(c1, c2), tileScale.y * Math.Min(r1, r2) + tileScale.y / 2, -1.5f),
                 Quaternion.Euler(0, 90, -90),
                 environmentContainer.transform
             );
@@ -228,12 +234,12 @@ public class Game : MonoBehaviour {
         renderedReachableTiles = Enumerable.Empty<GameObject>();
     }
 
-    // Get the absolute position in the world of a tile at (x, y).
+    // Get the absolute position in the world of a tile at (col, row).
     Vector3 ComputeTilePosition(int row, int col) {
         return Vector3.Scale(tileOriginal.transform.localScale, new Vector3(col, row, 0));
     }
 
-    // Get the absolute position in the world of a unit at (x, y).
+    // Get the absolute position in the world of a unit at (col, row).
     // TODO: Make unit position rely on how many units are in the room
     Vector3 ComputeUnitPosition(int row, int col, int unitId) {
         var tilePosition = ComputeTilePosition(row, col);

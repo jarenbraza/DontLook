@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 public enum Direction {
@@ -23,9 +22,9 @@ class GameConstants {
 }
 
 class TestMapConstants {
-    public static int MapSizeX { get; private set; } = 3;
-    public static int MapSizeY { get; private set; } = 3;
-    public static (int x1, int y1, int x2, int y2)[] Doors { get; private set; } = {
+    public static int TotalColumns { get; private set; } = 3;
+    public static int TotalRows { get; private set; } = 3;
+    public static (int, int, int, int)[] Doors { get; private set; } = {
         (0, 0, 1, 0),
         (2, 1, 2, 2)
     };
@@ -42,7 +41,7 @@ class RealMapConstants {
     public static int TotalColumns { get; private set; } = 10;
     public static int TotalRows { get; private set; } = 5;
 
-    public static (int c1, int r1, int c2, int r2)[] Doors { get; private set; } = {
+    public static (int, int, int, int)[] Doors { get; private set; } = {
         (7, 0, 8, 0),
         (0, 1, 1, 1),
         (1, 1, 2, 1),

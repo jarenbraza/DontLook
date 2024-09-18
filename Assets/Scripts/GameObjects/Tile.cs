@@ -5,14 +5,16 @@ using UnityEngine.EventSystems;
 public class Tile : MonoBehaviour, IPointerClickHandler {
     public ReachableTileClickEvent ReachableTileClickEvent { get; private set; }
 
-    public HashSet<Direction> hasDoor = new();
     public int Row { get; set; }
     public int Col { get; set; }
     public int RoomId { get; set; }
     public bool IsSelectable { get; set; }
 
+    public HashSet<Direction> Doors { get; private set; }
+
     void Awake() {
         ReachableTileClickEvent ??= new();
+        Doors = new();
     }
 
     public void OnPointerClick(PointerEventData eventData) {
@@ -46,20 +48,20 @@ public class Tile : MonoBehaviour, IPointerClickHandler {
         if (RoomId == tile.RoomId)
             return true;
 
-        if (Col + 1 == tile.Col && hasDoor.Contains(Direction.Right))
+        if (Col + 1 == tile.Col && Doors.Contains(Direction.Right))
             return true;
 
-        if (Col - 1 == tile.Col && hasDoor.Contains(Direction.Left))
+        if (Col - 1 == tile.Col && Doors.Contains(Direction.Left))
             return true;
 
-        if (Row + 1 == tile.Row && hasDoor.Contains(Direction.Up)) {
+        if (Row + 1 == tile.Row && Doors.Contains(Direction.Up)) {
             if (Row == 1 && Col == 1) {
                 Debug.Log($"(1,1) connected to ({tile.Row},{tile.Col}) from UP");
             }
             return true;
         }
 
-        if (Row - 1 == tile.Row && hasDoor.Contains(Direction.Down))
+        if (Row - 1 == tile.Row && Doors.Contains(Direction.Down))
             return true;
 
         return false;
