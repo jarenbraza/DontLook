@@ -1,60 +1,65 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class Tile : MonoBehaviour {
-    public StageMoveActionEvent StageMoveActionEvent { get; private set; }
+public class Tile : MonoBehaviour, IPointerClickHandler {
+    public ReachableTileClickEvent ReachableTileClickEvent { get; private set; }
 
     public HashSet<Direction> hasDoor = new();
-    public int X { get; set; }
-    public int Y { get; set; }
+    public int Row { get; set; }
+    public int Col { get; set; }
     public int RoomId { get; set; }
+    public bool IsSelectable { get; set; }
 
     void Awake() {
-        StageMoveActionEvent ??= new();
+        ReachableTileClickEvent ??= new();
     }
 
-    // TODO: Add more actions other than moving.
-    /// <summary>
-    /// When the tile is clicked with a selected unit, present actions the unit can perform.
-    /// </summary>
-    void OnMouseUp() {
-        if (Game.SelectedUnit != null)
-            StageMoveActionEvent.Invoke(Game.SelectedUnit, this);
+    public void OnPointerClick(PointerEventData eventData) {
+        if (IsSelectable)
+            ReachableTileClickEvent.Invoke(this);
     }
 
     public List<Tile> GetConnectedTiles(Tile[,] tiles) {
         var connectedTiles = new List<Tile>();
 
-        if (Y > 0 && IsConnected(tiles[X, Y - 1]))
-            connectedTiles.Add(tiles[X, Y - 1]);
+        if (Col > 0 && IsConnected(tiles[Row, Col - 1]))
+            connectedTiles.Add(tiles[Row, Col - 1]);
 
-        if (Y < tiles.GetLength(0) - 1 && IsConnected(tiles[X, Y + 1]))
-            connectedTiles.Add(tiles[X, Y + 1]);
+        if (Col < tiles.GetLength(1) - 1 && IsConnected(tiles[Row, Col + 1]))
+            connectedTiles.Add(tiles[Row, Col + 1]);
 
-        if (X > 0 && IsConnected(tiles[X - 1, Y]))
-            connectedTiles.Add(tiles[X - 1, Y]);
+        if (Row > 0 && IsConnected(tiles[Row - 1, Col]))
+            connectedTiles.Add(tiles[Row - 1, Col]);
 
-        if (X < tiles.GetLength(1) - 1 && IsConnected(tiles[X + 1, Y]))
-            connectedTiles.Add(tiles[X + 1, Y]);
+        if (Row < tiles.GetLength(0) - 1 && IsConnected(tiles[Row + 1, Col]))
+            connectedTiles.Add(tiles[Row + 1, Col]);
 
         return connectedTiles;
     }
 
     // Two tiles are connected if they are part of the same room or if there is a door between them
     public bool IsConnected(Tile tile) {
+        if (tile == null)
+            return false;
+
         if (RoomId == tile.RoomId)
             return true;
 
-        if (Y + 1 == tile.Y && hasDoor.Contains(Direction.Up))
+        if (Col + 1 == tile.Col && hasDoor.Contains(Direction.Right))
             return true;
 
-        if (Y - 1 == tile.Y && hasDoor.Contains(Direction.Down))
+        if (Col - 1 == tile.Col && hasDoor.Contains(Direction.Left))
             return true;
 
-        if (X + 1 == tile.X && hasDoor.Contains(Direction.Right))
+        if (Row + 1 == tile.Row && hasDoor.Contains(Direction.Up)) {
+            if (Row == 1 && Col == 1) {
+                Debug.Log($"(1,1) connected to ({tile.Row},{tile.Col}) from UP");
+            }
             return true;
+        }
 
-        if (X - 1 == tile.X && hasDoor.Contains(Direction.Left))
+        if (Row - 1 == tile.Row && hasDoor.Contains(Direction.Down))
             return true;
 
         return false;

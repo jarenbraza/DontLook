@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 359458665}
   - component: {fileID: 359458666}
   m_Layer: 0
-  m_Name: Game
+  m_Name: GameContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -181,14 +181,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d25100f42c257b498f92f412a344ec2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tile: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
-  unit: {fileID: 8747187022713724388, guid: 29aed33407faf654b9520c9e99ce394d, type: 3}
-  door: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
-  wall: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
-  reachableTileHighlight: {fileID: 919132149155446097, guid: b0fff20681cc73f48b260ee3b06d0024, type: 3}
-  actionPreview: {fileID: 432683463956320501, guid: edb09aef4e5773f4f8d0c0036c97c8eb, type: 3}
-  environmentModels: {fileID: 824690824}
-  game: {fileID: 359458663}
+  tileOriginal: {fileID: 8910982726831715588, guid: 27e1210384d7b014087a199ad1e83283, type: 3}
+  unitOriginal: {fileID: 8747187022713724388, guid: 29aed33407faf654b9520c9e99ce394d, type: 3}
+  doorOriginal: {fileID: 919132149155446097, guid: 686a542be455d1841accb1b060c56166, type: 3}
+  wallOriginal: {fileID: 919132149155446097, guid: 651d4e54d80990f4b9a1edd51e0d1058, type: 3}
+  reachableTileHighlightOriginal: {fileID: 7179280188600425713, guid: f0e1b4c284a12944b8fa3bb63902f3a3, type: 3}
+  actionPreviewOriginal: {fileID: 432683463956320501, guid: edb09aef4e5773f4f8d0c0036c97c8eb, type: 3}
+  environmentContainer: {fileID: 824690824}
+  gameContainer: {fileID: 359458663}
 --- !u!1 &801772774
 GameObject:
   m_ObjectHideFlags: 0
@@ -301,7 +301,7 @@ GameObject:
   m_Component:
   - component: {fileID: 824690825}
   m_Layer: 0
-  m_Name: EnvironmentModels
+  m_Name: EnvironmentContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -334,6 +334,7 @@ GameObject:
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
   - component: {fileID: 963194229}
+  - component: {fileID: 963194230}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -427,6 +428,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b25be2178553bd841ae0923bf352fdbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &963194230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c49b4cc203aa6414fae5c798d1d0e7d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EventMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_MaxRayIntersections: 0
 --- !u!1 &1118947854
 GameObject:
   m_ObjectHideFlags: 0

@@ -6,16 +6,16 @@ public class Unit : MonoBehaviour {
     public SelectUnitEvent SelectUnitEvent { get; private set; }
 
     public int Id { get; set; }
-    public int X { get; set; }
-    public int Y { get; set; }
+    public int Col { get; set; }
+    public int Row { get; set; }
     public int Movement { get; set; }
-    public HashSet<Tile> ReachableTiles { get; private set; }
 
     private Outline outline;
+    private Game game;
+    private Player player;
 
     void Awake() {
         SelectUnitEvent ??= new();
-        ReachableTiles = new();
 
         outline = gameObject.AddComponent<Outline>();
         outline.OutlineColor = Color.red;
@@ -23,46 +23,67 @@ public class Unit : MonoBehaviour {
         outline.OutlineWidth = 0f;
     }
 
-    public void Move(Tile tile) {
-        (X, Y) = (tile.X, tile.Y);
+    void Start() {
+        player = GameObject.Find("GameContainer").GetComponent<Player>();
+        game = GameObject.Find("GameContainer").GetComponent<Game>();
 
-        ClearUnitSelection();
+        game.CancelCommandEvent.AddListener((unit, _) => { unit.Unhighlight(); });
+        game.StageCommandMoveEvent.AddListener((unit, _) => { unit.Unhighlight(); });
     }
 
-    /// <summary>
-    /// When the unit is clicked, clear selections and then select this unit.
-    /// </summary>
     void OnMouseUp() {
-        if (!Game.CanSelectUnits)
+        if (!player.CanSelectUnit)
             return;
 
-        var isAlreadySelected = this == Game.SelectedUnit;
+        var isAlreadySelected = this == player.SelectedUnit;
 
         ClearUnitSelection();
 
         if (isAlreadySelected != this) {
             Highlight();
-            SetReachableTiles();
             SelectUnitEvent.Invoke(this);
         }
     }
 
     void OnMouseEnter() {
-        if (!Game.CanSelectUnits)
-            return;
-
-        if (this != Game.SelectedUnit) {
+        if (player.CanSelectUnit && this != player.SelectedUnit) {
             outline.OutlineWidth = GameConstants.UnitHoverWidth;
             outline.OutlineColor = GameConstants.UnitHoverColor;
         }
     }
 
     void OnMouseExit() {
-        if (!Game.CanSelectUnits)
-            return;
-
-        if (this != Game.SelectedUnit)
+        if (player.CanSelectUnit && this != player.SelectedUnit)
             Unhighlight();
+    }
+
+    public void Move(Tile tile) {
+        (Row, Col) = (tile.Row, tile.Col);
+        ClearUnitSelection();
+    }
+
+    public ISet<Tile> GetReachableTiles(Tile[,] tiles) {
+        var startingTile = tiles[Row, Col];
+        var tilesToVisit = new Queue<(Tile, int)>(new[] { (startingTile, 0) });
+        var reachableTiles = new HashSet<Tile>() { startingTile };
+
+        while (tilesToVisit.Count > 0) {
+            var (currentTile, distanceTraveled) = tilesToVisit.Dequeue();
+
+            if (distanceTraveled == Movement)
+                continue;
+
+            foreach (var tileToVisit in currentTile.GetConnectedTiles(tiles).Except(reachableTiles)) {
+                tilesToVisit.Enqueue((tileToVisit, distanceTraveled + 1));
+                reachableTiles.Add(tileToVisit);
+            }
+        }
+
+        return reachableTiles;
+    }
+
+    public void Unhighlight() {
+        outline.OutlineWidth = 0f;
     }
 
     void Highlight() {
@@ -70,29 +91,10 @@ public class Unit : MonoBehaviour {
         outline.OutlineColor = GameConstants.UnitSelectedColor;
     }
 
-    public void Unhighlight() {
-        outline.OutlineWidth = 0f;
-    }
-
     void ClearUnitSelection() {
+        if (player.SelectedUnit != null)
+            player.SelectedUnit.Unhighlight();
+
         SelectUnitEvent.Invoke(null);
-        ReachableTiles.Clear();
-    }
-
-    void SetReachableTiles() {
-        var q = new Queue<(Tile, int)>(new[] { (Game.Tiles[X, Y], 0) });
-        ReachableTiles = new HashSet<Tile>() { Game.Tiles[X, Y] };
-
-        while (q.Count > 0) {
-            var (currentTile, distanceTraveled) = q.Dequeue();
-
-            if (distanceTraveled == Movement)
-                continue;
-
-            foreach (var tileToVisit in currentTile.GetConnectedTiles(Game.Tiles).Except(ReachableTiles)) {
-                q.Enqueue((tileToVisit, distanceTraveled + 1));
-                ReachableTiles.Add(tileToVisit);
-            }
-        }
     }
 }
