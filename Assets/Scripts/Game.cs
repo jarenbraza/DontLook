@@ -65,7 +65,7 @@ public class Game : MonoBehaviour {
                 }
 
                 var renderedTile = Instantiate(tileOriginal, ComputeTilePosition(row, col), Quaternion.identity, gameContainer.transform);
-                renderedTile.name = $"{tileOriginal.name}_{row}_{col}";
+                renderedTile.name = $"{tileOriginal.name}_r{row}_c{col}";
 
                 var tile = renderedTile.GetComponent<Tile>();
                 (tile.Row, tile.Col, tile.RoomId) = (row, col, tileRoomID.ThrowIfNull());
@@ -326,6 +326,10 @@ public class Game : MonoBehaviour {
     // TODO: Instead, we would provide a pop-up UI on what action should be performed. For now, we always assume it's to move.
     void Tile_ReachableTileClickEvent(Tile tile) {
         var unit = player.SelectedUnit;
+
+        // TODO: Create possible actions UI
+
+        // TODO: Only do this on move
         renderedActionPreview = Instantiate(actionPreviewOriginal, unit.transform);
 
         var actionPreview = renderedActionPreview.GetComponent<ActionPreview>();

@@ -19,6 +19,15 @@ public enum Affiliation {
     AssistantBad = 2
 }
 
+class CameraConstants {
+    public static Vector3 MaxClamp = new(28f, 13f, -5f);
+    public static Vector3 MinClamp = new(-1f, -5f, -15f);
+    public static float OrthogonalSpeed = 20f;
+    public static float ZoomSpeed = 2f;
+    public static float RotationSpeed = 3.5f;
+    public static float TimeToUpdateInSeconds = 0.1f;
+}
+
 class GameConstants {
     public static float UnitSelectedWidth { get; private set; } = 3f;
     public static float UnitHoverWidth { get; private set; } = 1f;
