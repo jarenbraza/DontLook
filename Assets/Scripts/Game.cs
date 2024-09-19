@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 /// <summary>
 /// Contains logic for two primary goals:
@@ -11,7 +12,9 @@ using UnityEngine;
 public class Game : MonoBehaviour {
     public CancelCommandEvent CancelCommandEvent { get; private set; }
     public StageCommandMoveEvent StageCommandMoveEvent { get; private set; }
+    public ActionOptionSelectedEvent ActionOptionSelectedEvent { get; private set; }
 
+    [SerializeField] private UIDocument actionOptionsUI;
     [SerializeField] private GameObject tileOriginal;
     [SerializeField] private GameObject unitOriginal;
     [SerializeField] private GameObject doorOriginal;
@@ -31,6 +34,7 @@ public class Game : MonoBehaviour {
     // Game-related fields. To be used frequently by game logic.
     public Tile[,] Tiles { get; private set; }
     public Unit[] Units { get; private set; }
+    public Tile SelectedTile { get; private set; }
 
     // Fields generated and deleted during runtime.
     private IEnumerable<GameObject> renderedReachableTiles = Enumerable.Empty<GameObject>();
@@ -39,12 +43,14 @@ public class Game : MonoBehaviour {
     void Awake() {
         CancelCommandEvent ??= new();
         StageCommandMoveEvent ??= new();
+        ActionOptionSelectedEvent ??= new();
 
         RenderTiles();
         RenderUnits();
         RenderDoors();
         RenderWalls();
         RenderItems();
+        SetupActionOptionsUI();
     }
 
     void Start() {
@@ -287,12 +293,23 @@ public class Game : MonoBehaviour {
         var tileScale = tileOriginal.transform.localScale;
         var itemScale = itemOriginal.transform.localScale;
 
-        // TODO: Hardcoded position for debugging.
         return new Vector3(
             tilePosition.x + tile.Items.Count - itemScale.x,
             tilePosition.y + 2 - itemScale.y,
             itemScale.z - tileScale.z
         );
+    }
+
+    // TODO: Probably need to reset listeners here during game resets.
+    // TODO: Setup all other actions
+    void SetupActionOptionsUI() {
+        var root = actionOptionsUI.rootVisualElement;
+        root.style.display = DisplayStyle.None;
+
+        root.Q<Button>("MoveActionButton").clicked += MoveActionButton_OnClick;
+        root.Q<Button>("SearchButton1").clicked += SearchActionButton_OnClick;
+        root.Q<Button>("SearchButton2").clicked += SearchActionButton_OnClick;
+        root.Q<Button>("SearchButton3").clicked += SearchActionButton_OnClick;
     }
 
     void AddEventListeners() {
@@ -323,13 +340,14 @@ public class Game : MonoBehaviour {
             renderedReachableTiles = RenderReachableTiles(unit);
     }
 
-    // TODO: Instead, we would provide a pop-up UI on what action should be performed. For now, we always assume it's to move.
-    void Tile_ReachableTileClickEvent(Tile tile) {
+    void SearchActionButton_OnClick() {
+        ActionOptionSelectedEvent.Invoke();
+        throw new NotImplementedException();
+    }
+
+    void MoveActionButton_OnClick() {
         var unit = player.SelectedUnit;
-
-        // TODO: Create possible actions UI
-
-        // TODO: Only do this on move
+        var tile = SelectedTile;
         renderedActionPreview = Instantiate(actionPreviewOriginal, unit.transform);
 
         var actionPreview = renderedActionPreview.GetComponent<ActionPreview>();
@@ -342,8 +360,22 @@ public class Game : MonoBehaviour {
         (actionPreview.unit, actionPreview.tile) = (unit, tile);
         actionPreview.cancelCommandButton.onClick.AddListener(() => CancelCommandButton_OnClick(actionPreview));
 
+        actionOptionsUI.rootVisualElement.style.display = DisplayStyle.None;
+        StageCommandMoveEvent.Invoke(unit, tile);
+        ActionOptionSelectedEvent.Invoke();
+    }
+
+    void Tile_ReachableTileClickEvent(Tile tile) {
+        SelectedTile = tile;
         DestroyReachableTiles();
 
-        StageCommandMoveEvent.Invoke(unit, tile);
+        var root = actionOptionsUI.rootVisualElement;
+
+        var searchButtons = root.Q("SearchContainer").Children();
+
+        for (var i = 0; i < searchButtons.Count(); i++)
+            searchButtons.ElementAt(i).style.display = (i < tile.Items.Count) ? DisplayStyle.Flex : DisplayStyle.None;
+
+        root.style.display = DisplayStyle.Flex;
     }
 }
