@@ -11,10 +11,12 @@ public class Tile : MonoBehaviour, IPointerClickHandler {
     public bool IsSelectable { get; set; }
 
     public HashSet<Direction> Doors { get; private set; }
+    public List<Item> Items { get; private set; }
 
     void Awake() {
         ReachableTileClickEvent ??= new();
         Doors = new();
+        Items = new();
     }
 
     public void OnPointerClick(PointerEventData eventData) {
@@ -54,12 +56,8 @@ public class Tile : MonoBehaviour, IPointerClickHandler {
         if (Col - 1 == tile.Col && Doors.Contains(Direction.Left))
             return true;
 
-        if (Row + 1 == tile.Row && Doors.Contains(Direction.Up)) {
-            if (Row == 1 && Col == 1) {
-                Debug.Log($"(1,1) connected to ({tile.Row},{tile.Col}) from UP");
-            }
+        if (Row + 1 == tile.Row && Doors.Contains(Direction.Up))
             return true;
-        }
 
         if (Row - 1 == tile.Row && Doors.Contains(Direction.Down))
             return true;

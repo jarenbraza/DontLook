@@ -1,5 +1,11 @@
 using UnityEngine;
 
+public enum ItemType {
+    Food = 0,
+    Weapon = 1,
+    Trap = 2
+}
+
 public enum Direction {
     Up = 0,
     Down = 1,
@@ -35,11 +41,14 @@ class TestMapConstants {
     };
 }
 
-class RealMapConstants {
+class MapConstants {
     // Named N for formatting purposes
     private static readonly int? N = null;
     public static int TotalColumns { get; private set; } = 10;
     public static int TotalRows { get; private set; } = 5;
+    public static int TotalFood { get; private set; } = 10;
+    public static int TotalWeapons { get; private set; } = 6;
+    public static int TotalTraps { get; private set; } = 5;
 
     public static (int, int, int, int)[] Doors { get; private set; } = {
         (7, 0, 8, 0),

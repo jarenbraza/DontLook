@@ -12,6 +12,8 @@ public class Unit : MonoBehaviour {
     public bool IsTarget { get; set; }
     public bool IsKiller { get; set; }
 
+    public List<Item> Items { get; private set; }
+
     private Outline outline;
     private Game game;
     private Player player;

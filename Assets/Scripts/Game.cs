@@ -16,6 +16,7 @@ public class Game : MonoBehaviour {
     [SerializeField] private GameObject unitOriginal;
     [SerializeField] private GameObject doorOriginal;
     [SerializeField] private GameObject wallOriginal;
+    [SerializeField] private GameObject itemOriginal;
     [SerializeField] private GameObject reachableTileHighlightOriginal;
     [SerializeField] private GameObject actionPreviewOriginal;
 
@@ -43,6 +44,7 @@ public class Game : MonoBehaviour {
         RenderUnits();
         RenderDoors();
         RenderWalls();
+        RenderItems();
     }
 
     void Start() {
@@ -51,11 +53,11 @@ public class Game : MonoBehaviour {
     }
 
     void RenderTiles() {
-        Tiles = new Tile[RealMapConstants.TotalRows, RealMapConstants.TotalColumns];
+        Tiles = new Tile[MapConstants.TotalRows, MapConstants.TotalColumns];
 
-        for (var row = 0; row < RealMapConstants.TotalRows; row++) {
-            for (var col = 0; col < RealMapConstants.TotalColumns; col++) {
-                var tileRoomID = RealMapConstants.TileRoomIds[row, col];
+        for (var row = 0; row < MapConstants.TotalRows; row++) {
+            for (var col = 0; col < MapConstants.TotalColumns; col++) {
+                var tileRoomID = MapConstants.TileRoomIds[row, col];
 
                 if (tileRoomID == null) {
                     Tiles[row, col] = null;
@@ -71,7 +73,7 @@ public class Game : MonoBehaviour {
             }
         }
 
-        foreach (var (c1, r1, c2, r2) in RealMapConstants.Doors) {
+        foreach (var (c1, r1, c2, r2) in MapConstants.Doors) {
             if (c1 < c2) {
                 Tiles[r1, c1].Doors.Add(Direction.Right);
                 Tiles[r2, c2].Doors.Add(Direction.Left);
@@ -87,26 +89,13 @@ public class Game : MonoBehaviour {
                 Tiles[r2, c2].Doors.Add(Direction.Up);
             }
         }
-
-        foreach (var t in Tiles) {
-            if (t == null) continue;
-
-            if (t.Row == 1 && t.Col == 1) {
-                var s = $"({t.Row},{t.Col}):";
-                if (t.Doors.Contains(Direction.Right)) s += "R";
-                if (t.Doors.Contains(Direction.Left)) s += "L";
-                if (t.Doors.Contains(Direction.Up)) s += "U";
-                if (t.Doors.Contains(Direction.Down)) s += "D";
-                Debug.Log(s);
-            }
-        }
     }
 
     void RenderUnits() {
         var (startingRow, startingCol) = (0, 3);
         Units = new Unit[GameConstants.UnitCount];
 
-        var (targetId, killerId) = Utility.GetTwoUniqueInRange(0, 5);
+        var (targetId, killerId) = Utility.GetTwoUniqueInRange(GameConstants.UnitCount);
 
         for (var id = 0; id < GameConstants.UnitCount; id++) {
             var renderedUnit = Instantiate(unitOriginal, ComputeUnitPosition(startingRow, startingCol, id), Quaternion.Euler(90, 0, -180), gameObject.transform);
@@ -122,7 +111,7 @@ public class Game : MonoBehaviour {
     }
 
     void RenderDoors() {
-        foreach (var (c1, r1, c2, r2) in RealMapConstants.Doors)
+        foreach (var (c1, r1, c2, r2) in MapConstants.Doors)
             RenderDoor(c1, r1, c2, r2);
     }
 
@@ -157,9 +146,9 @@ public class Game : MonoBehaviour {
     // For each edge across all tiles, if it is not connected to another tile or leads out-of-bounds, render a wall.
     void RenderWalls() {
         var uniqueWallCoordinates = new HashSet<(int, int, int, int)>();
-        for (var row = 0; row < RealMapConstants.TotalRows; row++) {
-            for (var col = 0; col < RealMapConstants.TotalColumns; col++) {
-                if (RealMapConstants.TileRoomIds[row, col] == null)
+        for (var row = 0; row < MapConstants.TotalRows; row++) {
+            for (var col = 0; col < MapConstants.TotalColumns; col++) {
+                if (MapConstants.TileRoomIds[row, col] == null)
                     continue;
 
                 var adjacentCoordinates = new List<(int, int)>() { (row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1) };
@@ -203,6 +192,46 @@ public class Game : MonoBehaviour {
                 environmentContainer.transform
             );
             renderedWall.transform.localScale = new Vector3(1, tileScale.x * 2 / 3, tileScale.y);
+        }
+    }
+
+    void RenderItems() {
+        var (remainingFood, remainingWeapons, remainingTraps) = (MapConstants.TotalFood, MapConstants.TotalWeapons, MapConstants.TotalTraps);
+
+        if (remainingFood + remainingWeapons + remainingTraps > MapConstants.TotalRows * MapConstants.TotalColumns * 2)
+            throw new Exception("Too many items to place for map size and limitations");
+
+        // Randomly place items throughout the map
+        while (remainingFood > 0 || remainingWeapons > 0 || remainingTraps > 0) {
+            var randomRow = UnityEngine.Random.Range(0, MapConstants.TotalRows);
+            var randomCol = UnityEngine.Random.Range(0, MapConstants.TotalColumns);
+            var randomTile = Tiles[randomRow, randomCol];
+
+            if (randomTile == null || randomTile.Items.Count >= 2)
+                continue;
+
+            var renderedItem = Instantiate(
+                itemOriginal,
+                ComputeItemPosition(randomTile),
+                Quaternion.Euler(0, 90, -90),
+                randomTile.transform
+            );
+            var item = renderedItem.GetComponent<Item>();
+
+            if (remainingFood > 0) {
+                item.ItemType = ItemType.Food;
+                remainingFood--;
+            }
+            else if (remainingWeapons > 0) {
+                item.ItemType = ItemType.Weapon;
+                remainingWeapons--;
+            }
+            else if (remainingTraps > 0) {
+                item.ItemType = ItemType.Trap;
+                remainingTraps--;
+            }
+
+            randomTile.Items.Add(item);
         }
     }
 
@@ -250,6 +279,19 @@ public class Game : MonoBehaviour {
             tilePosition.x + unitId % Convert.ToInt32(tileScale.x) - unitScale.x,
             tilePosition.y + unitId / Convert.ToInt32(tileScale.y) - unitScale.y,
             -tileScale.z / 2
+        );
+    }
+
+    Vector3 ComputeItemPosition(Tile tile) {
+        var tilePosition = ComputeTilePosition(tile.Row, tile.Col);
+        var tileScale = tileOriginal.transform.localScale;
+        var itemScale = itemOriginal.transform.localScale;
+
+        // TODO: Hardcoded position for debugging.
+        return new Vector3(
+            tilePosition.x + tile.Items.Count - itemScale.x,
+            tilePosition.y + 2 - itemScale.y,
+            itemScale.z - tileScale.z
         );
     }
 
