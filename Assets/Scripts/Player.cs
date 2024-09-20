@@ -8,19 +8,19 @@ using UnityEngine.UI;
 /// </summary>
 public class Player : MonoBehaviour {
     [SerializeField] private Button commitCommandButton;
-    public CommitMoveActionEvent CommitMoveActionEvent { get; private set; }
+    public CommitCommandMoveEvent CommitMoveCommandEvent { get; private set; }
 
     private Game game;
     private Affiliation affiliation;
-    private List<UnitAction> unitActions;
+    private List<Command> stagedCommands;
 
     public bool CanSelectUnit {
-        get => (unitActions == null) || unitActions.Count < (affiliation == Affiliation.Good ? 1 : 2);
+        get => (stagedCommands == null) || stagedCommands.Count < (affiliation == Affiliation.Good ? 1 : 2);
     }
     public Unit SelectedUnit { get; private set; }
 
     void Awake() {
-        CommitMoveActionEvent ??= new();
+        CommitMoveCommandEvent ??= new();
     }
 
     void Start() {
@@ -28,7 +28,7 @@ public class Player : MonoBehaviour {
 
         // TODO: For now, assume all players are good :) Eventually, we want to be able to choose teams in the Lobby.
         affiliation = Affiliation.Good;
-        unitActions = new();
+        stagedCommands = new();
         SelectedUnit = null;
 
         AddEventListeners();
@@ -48,20 +48,22 @@ public class Player : MonoBehaviour {
     }
 
     void CommitCommandButton_OnCommitCommand() {
-        foreach (var unitAction in unitActions) {
-            unitAction.Unit.Move(unitAction.Tile);
-            CommitMoveActionEvent.Invoke(unitAction.Unit, unitAction.Tile);
+        // TODO: Update to allow for multiple different commands. Maybe command types?
+        foreach (var command in stagedCommands) {
+            command.Unit.Move(command.Tile);
+            CommitMoveCommandEvent.Invoke(command.Unit, command.Tile);
         }
 
-        unitActions.Clear();
+        stagedCommands.Clear();
     }
 
     void Game_OnStageCommand(Unit unit, Tile tile) {
-        unitActions.Add(new UnitAction(unit, tile));
+        stagedCommands.Add(new Command(unit, tile));
         SelectedUnit = null;
     }
 
     void Game_OnCancelCommand(Unit unit, Tile tile) {
-        unitActions = unitActions.Where((unitAction) => unitAction.Unit != unit && unitAction.Tile != tile).ToList();
+        // TODO: Update to allow for multiple different commands. Maybe command types?
+        stagedCommands = stagedCommands.Where(command => command.Unit != unit && command.Tile != tile).ToList();
     }
 }

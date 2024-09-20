@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 /// <summary>
 /// Contains logic for two primary goals:
@@ -12,16 +11,17 @@ using UnityEngine.UIElements;
 public class Game : MonoBehaviour {
     public CancelCommandEvent CancelCommandEvent { get; private set; }
     public StageCommandMoveEvent StageCommandMoveEvent { get; private set; }
-    public ActionOptionSelectedEvent ActionOptionSelectedEvent { get; private set; }
+    public StageCommandSearchEvent StageCommandSearchEvent { get; private set; }
+    public StageCommandGenericEvent StageCommandGenericEvent { get; private set; }
 
-    [SerializeField] private UIDocument actionOptionsUI;
+    // GameObjects to instantiate during runtime
     [SerializeField] private GameObject tileOriginal;
     [SerializeField] private GameObject unitOriginal;
     [SerializeField] private GameObject doorOriginal;
     [SerializeField] private GameObject wallOriginal;
     [SerializeField] private GameObject itemOriginal;
-    [SerializeField] private GameObject reachableTileHighlightOriginal;
-    [SerializeField] private GameObject actionPreviewOriginal;
+    [SerializeField] private GameObject tileHighlightOriginal;
+    [SerializeField] private GameObject commandPreviewOriginal;
 
     [SerializeField] [Tooltip("Container to hold non-essential environment details, like walls and doors")]
     private GameObject environmentContainer;
@@ -37,20 +37,20 @@ public class Game : MonoBehaviour {
     public Tile SelectedTile { get; private set; }
 
     // Fields generated and deleted during runtime.
-    private IEnumerable<GameObject> renderedReachableTiles = Enumerable.Empty<GameObject>();
-    private GameObject renderedActionPreview;
+    private List<GameObject> renderedTileHighlights = new();
+    private GameObject renderedCommandPreview;
 
     void Awake() {
         CancelCommandEvent ??= new();
         StageCommandMoveEvent ??= new();
-        ActionOptionSelectedEvent ??= new();
+        StageCommandSearchEvent ??= new();
+        StageCommandGenericEvent ??= new();
 
         RenderTiles();
         RenderUnits();
         RenderDoors();
         RenderWalls();
         RenderItems();
-        SetupActionOptionsUI();
     }
 
     void Start() {
@@ -241,32 +241,28 @@ public class Game : MonoBehaviour {
         }
     }
 
-    IEnumerable<GameObject> RenderReachableTiles(Unit unit) {
-        var reachableTiles = unit.GetReachableTiles(Tiles);
-        List<GameObject> renderedReachableTiles = new();
+    void RenderTileHighlights(ISet<Tile> reachableTiles) {
+        renderedTileHighlights = new List<GameObject>();
 
         foreach (var tile in reachableTiles) {
-            var renderedReachableTile = Instantiate(
-                reachableTileHighlightOriginal,
+            var tileHighlight = Instantiate(
+                tileHighlightOriginal,
                 ComputeTilePosition(tile.Row, tile.Col) - new Vector3(0, 0, 1.51f), // Place reachable highlight highlight just above the tile
                 Quaternion.Euler(0, 90, -90),
                 tile.transform
             );
-            renderedReachableTile.transform.localScale = new Vector3(0.8f, 1, 0.8f);
-            tile.IsSelectable = true;
-            renderedReachableTiles.Add(renderedReachableTile);
+            tileHighlight.transform.localScale = new Vector3(0.8f, 1, 0.8f);
+            renderedTileHighlights.Add(tileHighlight);
         }
-
-        return renderedReachableTiles;
     }
 
-    void DestroyReachableTiles() {
-        foreach (var renderedReachableTile in renderedReachableTiles) {
-            renderedReachableTile.GetComponentInParent<Tile>().IsSelectable = false;
-            Destroy(renderedReachableTile);
+    void DestroyTileHighlights() {
+        foreach (var renderedTileHighlight in renderedTileHighlights) {
+            renderedTileHighlight.GetComponentInParent<Tile>().IsSelectable = false;
+            Destroy(renderedTileHighlight);
         }
 
-        renderedReachableTiles = Enumerable.Empty<GameObject>();
+        renderedTileHighlights.Clear();
     }
 
     // Get the absolute position in the world of a tile at (col, row).
@@ -288,7 +284,7 @@ public class Game : MonoBehaviour {
         );
     }
 
-    Vector3 ComputeItemPosition(Tile tile) {
+    public Vector3 ComputeItemPosition(Tile tile) {
         var tilePosition = ComputeTilePosition(tile.Row, tile.Col);
         var tileScale = tileOriginal.transform.localScale;
         var itemScale = itemOriginal.transform.localScale;
@@ -300,82 +296,78 @@ public class Game : MonoBehaviour {
         );
     }
 
-    // TODO: Probably need to reset listeners here during game resets.
-    // TODO: Setup all other actions
-    void SetupActionOptionsUI() {
-        var root = actionOptionsUI.rootVisualElement;
-        root.style.display = DisplayStyle.None;
-
-        root.Q<Button>("MoveActionButton").clicked += MoveActionButton_OnClick;
-        root.Q<Button>("SearchButton1").clicked += SearchActionButton_OnClick;
-        root.Q<Button>("SearchButton2").clicked += SearchActionButton_OnClick;
-        root.Q<Button>("SearchButton3").clicked += SearchActionButton_OnClick;
-    }
-
     void AddEventListeners() {
         foreach (var tile in Tiles)
             if (tile != null)
-                tile.ReachableTileClickEvent.AddListener(Tile_ReachableTileClickEvent);
+                tile.TileClickEvent.AddListener(Tile_OnTileClick);
 
         foreach (var unit in Units)
-            unit.SelectUnitEvent.AddListener(Unit_SelectUnitEvent);
+            unit.SelectUnitEvent.AddListener(Unit_OnSelectUnit);
 
-        gameContainer.GetComponent<Player>().CommitMoveActionEvent.AddListener(Player_CommitMoveEvent);
+        gameContainer.GetComponent<Player>().CommitMoveCommandEvent.AddListener(Player_OnCommitMove);
+
+        var commandOptionsCanvas = GameObject.Find("CommandOptionsUI").GetComponent<CommandOptionCanvas>();
+
+        commandOptionsCanvas.MoveCommandButton.onClick.AddListener(MoveCommandButton_OnClick);
+
+        foreach (var searchCommandButton in commandOptionsCanvas.SearchCommandButtons)
+            searchCommandButton.onClick.AddListener(SearchCommandButton_OnClick);
     }
 
-    void CancelCommandButton_OnClick(ActionPreview actionPreview) {
-        CancelCommandEvent.Invoke(actionPreview.unit, actionPreview.tile);
-        Destroy(renderedActionPreview);
+    void CancelCommandButton_OnClick(CommandPreview commandPreview) {
+        CancelCommandEvent.Invoke(commandPreview.unit, commandPreview.tile);
+        Destroy(renderedCommandPreview);
     }
 
-    void Player_CommitMoveEvent(Unit unit, Tile tile) {
+    void Player_OnCommitMove(Unit unit, Tile tile) {
         unit.gameObject.transform.position = ComputeUnitPosition(tile.Row, tile.Col, unit.Id);
-        Destroy(renderedActionPreview);
+        Destroy(renderedCommandPreview);
     }
 
-    void Unit_SelectUnitEvent(Unit unit) {
+    void Unit_OnSelectUnit(Unit unit) {
         if (unit == null)
-            DestroyReachableTiles();
-        else
-            renderedReachableTiles = RenderReachableTiles(unit);
+            DestroyTileHighlights();
+        else {
+            var reachableTiles = unit.GetReachableTiles(Tiles);
+
+            foreach (var tile in reachableTiles)
+                tile.IsSelectable = true;
+
+            RenderTileHighlights(reachableTiles);
+        }
     }
 
-    void SearchActionButton_OnClick() {
-        ActionOptionSelectedEvent.Invoke();
-        throw new NotImplementedException();
+    void SearchCommandButton_OnClick() {
+        StageCommandSearchEvent.Invoke();
+
+        StageCommandGenericEvent.Invoke();
+        DestroyTileHighlights();
     }
 
-    void MoveActionButton_OnClick() {
+    void MoveCommandButton_OnClick() {
         var unit = player.SelectedUnit;
         var tile = SelectedTile;
-        renderedActionPreview = Instantiate(actionPreviewOriginal, unit.transform);
+        renderedCommandPreview = Instantiate(commandPreviewOriginal, unit.transform);
 
-        var actionPreview = renderedActionPreview.GetComponent<ActionPreview>();
+        var commandPreview = renderedCommandPreview.GetComponent<CommandPreview>();
 
-        actionPreview.actionPosition.transform.SetPositionAndRotation(
+        commandPreview.position.transform.SetPositionAndRotation(
             new Vector3(ComputeTilePosition(tile.Row, tile.Col).x, ComputeTilePosition(tile.Row, tile.Col).y, -1.5f),
             Quaternion.Euler(0, 90, -90)
         );
 
-        (actionPreview.unit, actionPreview.tile) = (unit, tile);
-        actionPreview.cancelCommandButton.onClick.AddListener(() => CancelCommandButton_OnClick(actionPreview));
+        (commandPreview.unit, commandPreview.tile) = (unit, tile);
+        commandPreview.cancelCommandButton.onClick.AddListener(() => CancelCommandButton_OnClick(commandPreview));
 
-        actionOptionsUI.rootVisualElement.style.display = DisplayStyle.None;
         StageCommandMoveEvent.Invoke(unit, tile);
-        ActionOptionSelectedEvent.Invoke();
+
+        StageCommandGenericEvent.Invoke();
+        DestroyTileHighlights();
     }
 
-    void Tile_ReachableTileClickEvent(Tile tile) {
+    void Tile_OnTileClick(Tile tile) {
         SelectedTile = tile;
-        DestroyReachableTiles();
-
-        var root = actionOptionsUI.rootVisualElement;
-
-        var searchButtons = root.Q("SearchContainer").Children();
-
-        for (var i = 0; i < searchButtons.Count(); i++)
-            searchButtons.ElementAt(i).style.display = (i < tile.Items.Count) ? DisplayStyle.Flex : DisplayStyle.None;
-
-        root.style.display = DisplayStyle.Flex;
+        DestroyTileHighlights();
+        RenderTileHighlights(new HashSet<Tile>{ tile });
     }
 }

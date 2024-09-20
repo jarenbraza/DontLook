@@ -19,6 +19,12 @@ public enum Affiliation {
     AssistantBad = 2
 }
 
+class LineRendererConstants {
+    public static float Width = 0.02f;
+    public static Color Color = Color.red;
+    public static string MaterialPath = "Assets/Materials/DrawnLineMat.mat";
+}
+
 class CameraConstants {
     public static Vector3 MaxClamp = new(28f, 13f, -5f);
     public static Vector3 MinClamp = new(-1f, -5f, -15f);

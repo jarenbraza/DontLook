@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CameraMovement : MonoBehaviour {
+public class GameCamera : MonoBehaviour {
     private Vector3 cameraPositionTarget;
     private Vector3 cameraVelocity;
     private bool isMoveableByPlayer;
@@ -12,11 +12,12 @@ public class CameraMovement : MonoBehaviour {
 
         var game = GameObject.Find("GameContainer").GetComponent<Game>();
 
-        game.ActionOptionSelectedEvent.AddListener(Game_OnActionOptionSelectedEvent);
+        game.StageCommandMoveEvent.AddListener((_, _) => isMoveableByPlayer = true);
+        game.StageCommandSearchEvent.AddListener(() => isMoveableByPlayer = true);
 
         foreach (var tile in game.Tiles)
             if (tile != null)
-                tile.ReachableTileClickEvent.AddListener(Tile_ReachableTileClickEvent);
+                tile.TileClickEvent.AddListener(Tile_OnTileClick);
     }
 
     void Update() {
@@ -58,7 +59,7 @@ public class CameraMovement : MonoBehaviour {
     /// <summary>
     /// Sets up camera to center onto the tile that triggered the event
     /// </summary>
-    void Tile_ReachableTileClickEvent(Tile tile) {
+    void Tile_OnTileClick(Tile tile) {
         var cameraGlobalOffset = transform.position - GetGlobalPointFromCenter();
         cameraPositionTarget = tile.transform.position + cameraGlobalOffset;
         isMoveableByPlayer = false;
@@ -68,13 +69,9 @@ public class CameraMovement : MonoBehaviour {
     /// Gets the point on the Z-plane directed from the camera to the center of the screen
     /// </summary>
     Vector3 GetGlobalPointFromCenter() {
-        Ray cameraCenterRay = GetComponent<Camera>().ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Ray cameraCenterRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         Plane groundPlane = new(Vector3.back, Vector3.zero);
         groundPlane.Raycast(cameraCenterRay, out float distanceToGround);
         return cameraCenterRay.GetPoint(distanceToGround);
-    }
-
-    void Game_OnActionOptionSelectedEvent() {
-        isMoveableByPlayer = true;
     }
 }

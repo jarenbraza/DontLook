@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class Tile : MonoBehaviour, IPointerClickHandler {
-    public ReachableTileClickEvent ReachableTileClickEvent { get; private set; }
+    public TileClickEvent TileClickEvent { get; private set; }
 
     public int Row { get; set; }
     public int Col { get; set; }
@@ -14,14 +14,14 @@ public class Tile : MonoBehaviour, IPointerClickHandler {
     public List<Item> Items { get; private set; }
 
     void Awake() {
-        ReachableTileClickEvent ??= new();
+        TileClickEvent ??= new();
         Doors = new();
         Items = new();
     }
 
     public void OnPointerClick(PointerEventData eventData) {
         if (IsSelectable)
-            ReachableTileClickEvent.Invoke(this);
+            TileClickEvent.Invoke(this);
     }
 
     public List<Tile> GetConnectedTiles(Tile[,] tiles) {
