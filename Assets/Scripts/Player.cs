@@ -1,69 +1,74 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Events;
 
-/// <summary>
-/// Contains logic for a single player.
-/// </summary>
 public class Player : MonoBehaviour {
-    [SerializeField] private Button commitCommandButton;
-    public CommitCommandMoveEvent CommitMoveCommandEvent { get; private set; }
-
-    private Game game;
-    private Affiliation affiliation;
-    private List<Command> stagedCommands;
-
-    public bool CanSelectUnit {
-        get => (stagedCommands == null) || stagedCommands.Count < (affiliation == Affiliation.Good ? 1 : 2);
-    }
-    public Unit SelectedUnit { get; private set; }
-
-    void Awake() {
-        CommitMoveCommandEvent ??= new();
+    public enum Affiliation {
+        Good,
+        Bad
     }
 
-    void Start() {
-        game = gameObject.GetComponent<Game>();
+    public static Player Instance { get; private set; }
 
-        // TODO: For now, assume all players are good :) Eventually, we want to be able to choose teams in the Lobby.
-        affiliation = Affiliation.Good;
-        stagedCommands = new();
-        SelectedUnit = null;
+    public UnityEvent OnCommandStaged { get; private set; }
 
-        AddEventListeners();
+    [SerializeField] private MoveCommandButton moveCommandButton;
+
+    public Tile CurrentTile { get; private set; }
+    public Unit CurrentUnit { get; private set; }
+    public string ID { get; private set; } = Guid.NewGuid().ToString(); // TODO: Get this from lobby/relay
+    public bool CanStageCommands { get => remainingCommands > 0; }
+
+    private Affiliation affiliation = Affiliation.Good; // TODO: Get this from lobby/relay
+    private int remainingCommands;
+
+    private void Awake() {
+        Instance = this;
+
+        OnCommandStaged ??= new();
+        CurrentTile = null;
+        CurrentUnit = null;
+        ResetRemainingCommands();
     }
 
-    void AddEventListeners() {
-        foreach (var unit in game.Units)
-            unit.SelectUnitEvent.AddListener(Unit_OnSelectUnit);
+    private void Start() {
+        GameState.Instance.Units.ForEach(unit => unit.OnSelect.AddListener(Unit_OnSelect));
+        GameState.Instance.Tiles.ForEach(tile => tile.OnSelect.AddListener(Tile_OnSelect));
+        GameManager.Instance.OnTurnStart.AddListener(GameManager_OnTurnStart);
 
-        commitCommandButton.onClick.AddListener(CommitCommandButton_OnCommitCommand);
-        game.StageCommandMoveEvent.AddListener(Game_OnStageCommand);
-        game.CancelCommandEvent.AddListener(Game_OnCancelCommand);
+        moveCommandButton.OnClick.AddListener(MoveCommandButton_OnClick);
     }
 
-    void Unit_OnSelectUnit(Unit unit) {
-        SelectedUnit = unit;
+    private void OnDestroy() {
+        OnCommandStaged.RemoveAllListeners();
+
+        Instance = null;
     }
 
-    void CommitCommandButton_OnCommitCommand() {
-        // TODO: Update to allow for multiple different commands. Maybe command types?
-        foreach (var command in stagedCommands) {
-            command.Unit.Move(command.Tile);
-            CommitMoveCommandEvent.Invoke(command.Unit, command.Tile);
-        }
-
-        stagedCommands.Clear();
+    private void Unit_OnSelect(Unit unit) {
+        CurrentUnit = unit;
     }
 
-    void Game_OnStageCommand(Unit unit, Tile tile) {
-        stagedCommands.Add(new Command(unit, tile));
-        SelectedUnit = null;
+    private void Tile_OnSelect(Tile tile) {
+        CurrentTile = tile;
     }
 
-    void Game_OnCancelCommand(Unit unit, Tile tile) {
-        // TODO: Update to allow for multiple different commands. Maybe command types?
-        stagedCommands = stagedCommands.Where(command => command.Unit != unit && command.Tile != tile).ToList();
+    private void MoveCommandButton_OnClick(StagedCommand stagedCommand) {
+        remainingCommands -= 1;
+        stagedCommand.OnCancel.AddListener(StagedCommand_OnCancel);
+        OnCommandStaged.Invoke();
+    }
+
+    private void StagedCommand_OnCancel(StagedCommand stagedCommand) {
+        remainingCommands += 1;
+        stagedCommand.OnCancel.RemoveListener(StagedCommand_OnCancel);
+    }
+
+    private void GameManager_OnTurnStart() {
+        ResetRemainingCommands();
+    }
+
+    private void ResetRemainingCommands() {
+        remainingCommands = affiliation == Affiliation.Good ? 2 : 1;
     }
 }

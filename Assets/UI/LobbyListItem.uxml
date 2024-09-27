@@ -1,7 +1,0 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <ui:VisualElement name="LobbyListItem" style="flex-grow: 1; max-height: 50px; flex-direction: row; justify-content: space-between; align-self: stretch; display: flex;">
-        <ui:Label tabindex="-1" text="LobbyCode" parse-escape-sequences="true" display-tooltip-when-elided="true" name="LobbyIdLabel" style="-unity-text-align: middle-left;" />
-        <ui:Label tabindex="-1" text="Players: 0/4" parse-escape-sequences="true" display-tooltip-when-elided="true" name="PlayerCountLabel" style="-unity-text-align: middle-left;" />
-        <ui:Button text="Join" parse-escape-sequences="true" display-tooltip-when-elided="true" name="JoinLobbyButton" />
-    </ui:VisualElement>
-</ui:UXML>
